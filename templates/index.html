@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO 27001 Readiness Self-Assessment</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">&#x1F6E1;</span>
+                    <h1>ISO 27001 Readiness</h1>
+                </div>
+                <div class="header-actions">
+                    <span class="badge">Self-Assessment</span>
+                    <span id="user-email-display" class="user-email-display" style="display:none;"></span>
+                    <button id="logout-btn" class="btn-home" title="Log out" style="display:none;">&#x1F6AA; Logout</button>
+                    <button id="home-btn" class="btn-home" title="Go to Home">&#x2302; Home</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Auth Screen (Login / Signup) -->
+            <div id="auth-screen" class="screen">
+                <div class="auth-tabs">
+                    <button id="auth-login-tab" class="auth-tab active">Log In</button>
+                    <button id="auth-signup-tab" class="auth-tab">Sign Up</button>
+                </div>
+
+                <!-- Login Form -->
+                <div id="login-form" class="auth-form active">
+                    <div class="auth-card">
+                        <div class="auth-icon">&#x1F512;</div>
+                        <h2>Welcome Back</h2>
+                        <p>Log in to continue your ISO 27001 readiness assessment</p>
+                        <div id="login-error" class="auth-error" style="display:none;"></div>
+                        <div class="auth-input-group">
+                            <input type="email" id="login-email" placeholder="Email address" autofocus>
+                            <input type="password" id="login-password" placeholder="Password">
+                            <button id="login-btn" class="btn btn-primary auth-submit-btn">Log In</button>
+                        </div>
+                        <p class="auth-toggle-text">
+                            Don't have an account? <a href="#" id="login-to-signup">Sign up</a>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Signup Form -->
+                <div id="signup-form" class="auth-form">
+                    <div class="auth-card">
+                        <div class="auth-icon">&#x1F4CB;</div>
+                        <h2>Create Account</h2>
+                        <p>Register to start your ISO 27001 readiness assessment</p>
+                        <div id="signup-error" class="auth-error" style="display:none;"></div>
+                        <div class="auth-input-group">
+                            <input type="text" id="signup-name" placeholder="Company name">
+                            <input type="email" id="signup-email" placeholder="Email address">
+                            <input type="password" id="signup-password" placeholder="Password (min 6 characters)">
+                            <button id="signup-btn" class="btn btn-primary auth-submit-btn">Create Account</button>
+                        </div>
+                        <p class="auth-toggle-text">
+                            Already have an account? <a href="#" id="signup-to-login">Log in</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Screen -->
+            <div id="start-screen" class="screen">
+                <div class="welcome-card">
+                    <div class="welcome-icon">&#x1F4CB;</div>
+                    <h2>ISO 27001:2022 Readiness Assessment</h2>
+                    <p>Answer 30 questions across 7 Annex A domains to evaluate your organization's ISO 27001 readiness. Receive a comprehensive gap analysis report with actionable recommendations.</p>
+                    <div class="input-group">
+                        <input type="text" id="company-input" placeholder="Enter your company name" maxlength="100" autofocus>
+                        <button id="start-btn" class="btn btn-primary">Start Assessment</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Screen -->
+            <div id="chat-screen" class="screen">
+                <!-- Progress Bar -->
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span id="progress-text" class="progress-text">Question 1 of 30</span>
+                        <span id="domain-label" class="domain-label">Domain: Organizational Controls</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="progress-bar" class="progress-bar" style="width: 3.33%"></div>
+                    </div>
+                </div>
+
+                <!-- Chat Messages -->
+                <div id="chat-messages" class="chat-messages">
+                    <!-- Messages will be rendered here -->
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-area">
+                    <div class="chat-input-wrapper">
+                        <textarea id="answer-input" rows="2" placeholder="Type your answer here..." maxlength="1000"></textarea>
+                        <button id="send-btn" class="btn btn-send" disabled>
+                            <span class="send-icon">&#x27A4;</span>
+                        </button>
+                    </div>
+                    <div class="input-hint">
+                        <span id="hint-text" class="hint-text"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Screen -->
+            <div id="results-screen" class="screen">
+                <div class="results-container">
+                    <div class="results-header">
+                        <div class="results-icon">&#x1F3C6;</div>
+                        <h2>Assessment Complete!</h2>
+                        <p id="results-company" class="results-company"></p>
+                    </div>
+
+                    <!-- Overall Score -->
+                    <div class="overall-score-card">
+                        <div class="overall-score-ring">
+                            <span id="overall-score-value" class="overall-score-value">0</span>
+                            <span class="overall-score-label">%</span>
+                        </div>
+                        <div class="overall-score-text">
+                            <h3>Overall Readiness</h3>
+                            <p id="overall-status-text">Assessment complete</p>
+                        </div>
+                    </div>
+
+                    <!-- Domain Score Cards -->
+                    <h3 class="section-title">Domain Scores</h3>
+                    <div id="domain-cards" class="domain-cards">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <!-- Priority Matrix -->
+                    <div id="priority-matrix-section" class="priority-matrix-section" style="display:none;">
+                        <h3 class="section-title">Remediation Priority Matrix</h3>
+                        <button id="view-priority-btn" class="btn btn-secondary priority-btn">
+                            &#x1F4CA; View Priority Matrix
+                        </button>
+                        <div id="priority-loading" class="priority-loading" style="display:none;">
+                            <div class="spinner"></div>
+                            <span>Classifying gaps with AI...</span>
+                        </div>
+                        <div id="priority-grid" class="priority-grid" style="display:none;">
+                            <div class="priority-cell cell-fix-now">
+                                <div class="cell-header">
+                                    <span class="cell-icon">&#x1F534;</span>
+                                    <span class="cell-title">Fix Now</span>
+                                </div>
+                                <div class="cell-subtitle">High impact, low effort</div>
+                                <div id="cell-fix-now-list" class="cell-list"></div>
+                            </div>
+                            <div class="priority-cell cell-plan-for-it">
+                                <div class="cell-header">
+                                    <span class="cell-icon">&#x1F7E1;</span>
+                                    <span class="cell-title">Plan For It</span>
+                                </div>
+                                <div class="cell-subtitle">High impact, high effort</div>
+                                <div id="cell-plan-for-it-list" class="cell-list"></div>
+                            </div>
+                            <div class="priority-cell cell-quick-wins">
+                                <div class="cell-header">
+                                    <span class="cell-icon">&#x1F7E2;</span>
+                                    <span class="cell-title">Quick Wins</span>
+                                </div>
+                                <div class="cell-subtitle">Low impact, low effort</div>
+                                <div id="cell-quick-wins-list" class="cell-list"></div>
+                            </div>
+                            <div class="priority-cell cell-deprioritize">
+                                <div class="cell-header">
+                                    <span class="cell-icon">&#x26AA;</span>
+                                    <span class="cell-title">Deprioritize</span>
+                                </div>
+                                <div class="cell-subtitle">Low impact, high effort</div>
+                                <div id="cell-deprioritize-list" class="cell-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="results-actions">
+                        <button id="download-pdf-btn" class="btn btn-primary">
+                            &#x1F4E5; Download PDF Report
+                        </button>
+                        <button id="restart-btn" class="btn btn-secondary">
+                            &#x21A9; Start New Assessment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>ISO 27001:2022 Readiness Self-Assessment &mdash; CHARUSAT 2026</p>
+        </footer>
+    </div>
+
+    <script src="/static/chat.js"></script>
+</body>
+</html>

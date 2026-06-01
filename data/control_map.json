@@ -1,0 +1,283 @@
+{
+  "Q01": {
+    "domain": "Organizational Controls",
+    "question": "Do you have a documented Information Security Policy?",
+    "control_ids": ["A.5.1"],
+    "descriptions": {
+      "A.5.1": "Policies for information security shall be defined, approved by management, published, communicated and reviewed."
+    },
+    "keywords": ["policy", "document", "information security policy", "written policy"]
+  },
+  "Q02": {
+    "domain": "Organizational Controls",
+    "question": "Are roles and responsibilities for information security clearly defined?",
+    "control_ids": ["A.5.2"],
+    "descriptions": {
+      "A.5.2": "Information security roles and responsibilities shall be defined and allocated."
+    },
+    "keywords": ["roles", "responsibilities", "CISO", "security team", "assigned"]
+  },
+  "Q03": {
+    "domain": "Organizational Controls",
+    "question": "Do you have a process for managing information security risks?",
+    "control_ids": ["A.5.8"],
+    "descriptions": {
+      "A.5.8": "Information security risk assessment processes shall be defined, approved and applied."
+    },
+    "keywords": ["risk", "risk assessment", "risk management", "risk process"]
+  },
+  "Q04": {
+    "domain": "Organizational Controls",
+    "question": "Is there a process for handling supplier/third-party security?",
+    "control_ids": ["A.5.19", "A.5.20"],
+    "descriptions": {
+      "A.5.19": "Information security requirements for supplier relationships shall be defined and agreed.",
+      "A.5.20": "Suppliers shall be reviewed regularly for compliance with information security requirements."
+    },
+    "keywords": ["supplier", "third-party", "vendor", "contractor", "supply chain"]
+  },
+  "Q05": {
+    "domain": "Organizational Controls",
+    "question": "Do you conduct internal information security audits?",
+    "control_ids": ["A.5.35"],
+    "descriptions": {
+      "A.5.35": "Internal audits shall be conducted at planned intervals to verify compliance with information security requirements."
+    },
+    "keywords": ["audit", "internal audit", "compliance audit", "security audit"]
+  },
+  "Q06": {
+    "domain": "Organizational Controls",
+    "question": "Is there a business continuity plan that covers IT/data?",
+    "control_ids": ["A.5.29", "A.5.30"],
+    "descriptions": {
+      "A.5.29": "Business continuity plans shall be developed and maintained to ensure continuity of information security.",
+      "A.5.30": "Business continuity plans shall be tested and reviewed regularly."
+    },
+    "keywords": ["business continuity", "disaster recovery", "BCP", "DR", "continuity plan"]
+  },
+  "Q07": {
+    "domain": "Organizational Controls",
+    "question": "Do you have a legal/compliance register for data protection laws?",
+    "control_ids": ["A.5.31", "A.5.34"],
+    "descriptions": {
+      "A.5.31": "Legal, statutory, regulatory and contractual requirements relevant to information security shall be identified and documented.",
+      "A.5.34": "Privacy and protection of personally identifiable information shall be ensured."
+    },
+    "keywords": ["legal", "compliance", "GDPR", "data protection", "regulatory", "register"]
+  },
+  "Q08": {
+    "domain": "People Controls",
+    "question": "Do you conduct background checks on new employees?",
+    "control_ids": ["A.6.1"],
+    "descriptions": {
+      "A.6.1": "Background verification checks on all candidates for employment shall be conducted prior to joining."
+    },
+    "keywords": ["background check", "screening", "vetting", "employee check", "pre-employment"]
+  },
+  "Q09": {
+    "domain": "People Controls",
+    "question": "Is security training provided to all staff?",
+    "control_ids": ["A.6.3"],
+    "descriptions": {
+      "A.6.3": "All personnel shall receive appropriate information security awareness training and updates."
+    },
+    "keywords": ["training", "awareness", "security training", "staff training", "onboarding training"]
+  },
+  "Q10": {
+    "domain": "People Controls",
+    "question": "Do employees sign confidentiality/NDA agreements?",
+    "control_ids": ["A.6.2"],
+    "descriptions": {
+      "A.6.2": "Personnel shall agree to terms and conditions of employment that include information security responsibilities."
+    },
+    "keywords": ["NDA", "confidentiality", "agreement", "non-disclosure", "signed"]
+  },
+  "Q11": {
+    "domain": "People Controls",
+    "question": "Is there a process for offboarding employees (revoking access)?",
+    "control_ids": ["A.6.5"],
+    "descriptions": {
+      "A.6.5": "Access rights of personnel shall be removed upon termination of their employment or contract."
+    },
+    "keywords": ["offboarding", "termination", "revoke access", "leaver", "exit process"]
+  },
+  "Q12": {
+    "domain": "Physical Controls",
+    "question": "Are server rooms / data centres physically secured?",
+    "control_ids": ["A.7.1", "A.7.2"],
+    "descriptions": {
+      "A.7.1": "Physical security perimeters shall be defined and used to protect areas that contain information and other assets.",
+      "A.7.2": "Secure entry to premises and physical areas shall be controlled and protected."
+    },
+    "keywords": ["server room", "data centre", "physical security", "lock", "access control"]
+  },
+  "Q13": {
+    "domain": "Physical Controls",
+    "question": "Do you control visitor access to sensitive areas?",
+    "control_ids": ["A.7.3"],
+    "descriptions": {
+      "A.7.3": "Visitors to secure areas shall be supervised and their access logged."
+    },
+    "keywords": ["visitor", "guest", "visitor access", "visitor log", "escort"]
+  },
+  "Q14": {
+    "domain": "Physical Controls",
+    "question": "Is equipment protected against environmental threats?",
+    "control_ids": ["A.7.8"],
+    "descriptions": {
+      "A.7.8": "Equipment shall be protected from environmental threats such as fire, flood, and power failures."
+    },
+    "keywords": ["environmental", "fire", "flood", "UPS", "power backup", "temperature"]
+  },
+  "Q15": {
+    "domain": "Physical Controls",
+    "question": "Do you have a clear desk and clear screen policy?",
+    "control_ids": ["A.7.7"],
+    "descriptions": {
+      "A.7.7": "Clear desk and clear screen policies shall be adopted to reduce risk of unauthorized access."
+    },
+    "keywords": ["clear desk", "clear screen", "clean desk", "lock screen", "paper security"]
+  },
+  "Q16": {
+    "domain": "Technological Controls",
+    "question": "Do you use multi-factor authentication (MFA)?",
+    "control_ids": ["A.8.5"],
+    "descriptions": {
+      "A.8.5": "Secure authentication methods, such as multi-factor authentication, shall be implemented where appropriate."
+    },
+    "keywords": ["MFA", "multi-factor", "2FA", "two-factor", "authentication"]
+  },
+  "Q17": {
+    "domain": "Technological Controls",
+    "question": "Are access rights reviewed and revoked when no longer needed?",
+    "control_ids": ["A.8.2", "A.8.3"],
+    "descriptions": {
+      "A.8.2": "Access to information and systems shall be revoked or modified when no longer required.",
+      "A.8.3": "Access rights shall be reviewed at regular intervals."
+    },
+    "keywords": ["access review", "revoke", "access rights", "permissions review", "user access"]
+  },
+  "Q18": {
+    "domain": "Technological Controls",
+    "question": "Are all systems patched and updated regularly?",
+    "control_ids": ["A.8.8"],
+    "descriptions": {
+      "A.8.8": "Security patches shall be applied in a timely manner to protect against known vulnerabilities."
+    },
+    "keywords": ["patching", "patch management", "update", "vulnerability", "software update"]
+  },
+  "Q19": {
+    "domain": "Technological Controls",
+    "question": "Do you have antivirus / endpoint protection on all devices?",
+    "control_ids": ["A.8.7"],
+    "descriptions": {
+      "A.8.7": "Malware protection mechanisms shall be implemented and maintained on all endpoint devices."
+    },
+    "keywords": ["antivirus", "endpoint protection", "malware", "defender", "anti-malware"]
+  },
+  "Q20": {
+    "domain": "Technological Controls",
+    "question": "Is network traffic monitored for threats?",
+    "control_ids": ["A.8.16"],
+    "descriptions": {
+      "A.8.16": "Networks shall be monitored for unusual behavior and potential security incidents."
+    },
+    "keywords": ["network monitoring", "traffic", "IDS", "IPS", "intrusion detection", "SIEM"]
+  },
+  "Q21": {
+    "domain": "Technological Controls",
+    "question": "Do you have a Web Application Firewall (WAF) or similar?",
+    "control_ids": ["A.8.20", "A.8.21"],
+    "descriptions": {
+      "A.8.20": "Network security controls shall be implemented to protect services from unauthorized access.",
+      "A.8.21": "Security mechanisms shall be applied to web applications to protect against web-based attacks."
+    },
+    "keywords": ["WAF", "firewall", "web application firewall", "network security", "web security"]
+  },
+  "Q22": {
+    "domain": "Technological Controls",
+    "question": "Is data backed up regularly and tested for restore?",
+    "control_ids": ["A.8.13"],
+    "descriptions": {
+      "A.8.13": "Backups of information, software, and system images shall be taken and tested regularly."
+    },
+    "keywords": ["backup", "backup testing", "restore", "data backup", "recovery"]
+  },
+  "Q23": {
+    "domain": "Technological Controls",
+    "question": "Do you conduct penetration tests or vulnerability scans?",
+    "control_ids": ["A.8.8", "A.8.25"],
+    "descriptions": {
+      "A.8.8": "Security patches shall be applied in a timely manner to protect against known vulnerabilities.",
+      "A.8.25": "Testing of security measures shall be conducted at planned intervals to verify effectiveness."
+    },
+    "keywords": ["penetration test", "pentest", "vulnerability scan", "security testing", "ethical hacking"]
+  },
+  "Q24": {
+    "domain": "Asset Management",
+    "question": "Do you maintain an inventory of all information assets?",
+    "control_ids": ["A.5.9"],
+    "descriptions": {
+      "A.5.9": "An inventory of information assets shall be maintained and kept current."
+    },
+    "keywords": ["asset inventory", "asset register", "information assets", "IT inventory", "asset list"]
+  },
+  "Q25": {
+    "domain": "Asset Management",
+    "question": "Is information classified according to sensitivity?",
+    "control_ids": ["A.5.12"],
+    "descriptions": {
+      "A.5.12": "Information shall be classified according to its sensitivity and criticality."
+    },
+    "keywords": ["classification", "sensitivity", "label", "confidential", "data classification"]
+  },
+  "Q26": {
+    "domain": "Asset Management",
+    "question": "Do you have a policy for secure disposal of media/devices?",
+    "control_ids": ["A.5.11", "A.7.14"],
+    "descriptions": {
+      "A.5.11": "Assets shall be returned and media disposal shall be carried out securely.",
+      "A.7.14": "Equipment containing storage media shall be verified that sensitive data has been securely erased or destroyed."
+    },
+    "keywords": ["disposal", "media disposal", "secure erase", "destruction", "decommission"]
+  },
+  "Q27": {
+    "domain": "Cryptography",
+    "question": "Are laptops and mobile devices encrypted?",
+    "control_ids": ["A.8.24"],
+    "descriptions": {
+      "A.8.24": "Cryptographic controls shall be used to protect the confidentiality of information on mobile devices."
+    },
+    "keywords": ["encryption", "laptop encryption", "disk encryption", "BitLocker", "FileVault"]
+  },
+  "Q28": {
+    "domain": "Cryptography",
+    "question": "Is sensitive data encrypted at rest and in transit?",
+    "control_ids": ["A.8.24", "A.5.10"],
+    "descriptions": {
+      "A.8.24": "Cryptographic controls shall be used to protect the confidentiality of information.",
+      "A.5.10": "Information shall be protected in transit and at rest using appropriate cryptographic methods."
+    },
+    "keywords": ["encryption at rest", "encryption in transit", "TLS", "HTTPS", "data encryption"]
+  },
+  "Q29": {
+    "domain": "Incident Management",
+    "question": "Do you have an incident response plan?",
+    "control_ids": ["A.5.24", "A.5.25"],
+    "descriptions": {
+      "A.5.24": "Information security incident management processes shall be defined and applied.",
+      "A.5.25": "Roles and responsibilities for incident response shall be assigned and documented."
+    },
+    "keywords": ["incident response", "IR plan", "incident management", "cyber incident", "response plan"]
+  },
+  "Q30": {
+    "domain": "Incident Management",
+    "question": "Are security incidents logged and reviewed after resolution?",
+    "control_ids": ["A.5.27", "A.5.28"],
+    "descriptions": {
+      "A.5.27": "Information security incidents shall be documented, reported, and collected as evidence.",
+      "A.5.28": "Lessons learned from incidents shall be documented and used to improve the security posture."
+    },
+    "keywords": ["incident logging", "post-incident", "lessons learned", "incident review", "reporting"]
+  }
+}

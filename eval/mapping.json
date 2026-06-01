@@ -1,0 +1,279 @@
+{
+  "score": "20/20",
+  "threshold": "16/20",
+  "overall_pass": true,
+  "results": [
+    {
+      "id": "AE01",
+      "question_id": "Q27",
+      "answer": "we kind of encrypt some laptops",
+      "expected": [
+        "A.8.24"
+      ],
+      "predicted": [
+        "A.8.24"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE02",
+      "question_id": "Q16",
+      "answer": "users have a second step sometimes when logging in from outside",
+      "expected": [
+        "A.8.5"
+      ],
+      "predicted": [
+        "A.8.5"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE03",
+      "question_id": "Q01",
+      "answer": "there's a document from 2019 we haven't really updated",
+      "expected": [
+        "A.5.1"
+      ],
+      "predicted": [
+        "A.5.1"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE04",
+      "question_id": "Q11",
+      "answer": "we usually remove their email after a week or so",
+      "expected": [
+        "A.6.5"
+      ],
+      "predicted": [
+        "A.6.5"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE05",
+      "question_id": "Q22",
+      "answer": "backups run automatically I think, not sure if anyone tests them",
+      "expected": [
+        "A.8.13"
+      ],
+      "predicted": [
+        "A.8.13"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE06",
+      "question_id": "Q28",
+      "answer": "we use HTTPS on our website but not sure about the database",
+      "expected": [
+        "A.8.24",
+        "A.5.10"
+      ],
+      "predicted": [
+        "A.5.10",
+        "A.8.24"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE07",
+      "question_id": "Q18",
+      "answer": "IT applies patches quarterly unless something urgent comes up",
+      "expected": [
+        "A.8.8"
+      ],
+      "predicted": [
+        "A.8.8"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE08",
+      "question_id": "Q09",
+      "answer": "new hires get a 30-minute video during onboarding",
+      "expected": [
+        "A.6.3"
+      ],
+      "predicted": [
+        "A.6.3"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE09",
+      "question_id": "Q24",
+      "answer": "we have a spreadsheet somewhere listing our main servers",
+      "expected": [
+        "A.5.9"
+      ],
+      "predicted": [
+        "A.5.9"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE10",
+      "question_id": "Q12",
+      "answer": "the server room has a lock and only IT staff have the key",
+      "expected": [
+        "A.7.1",
+        "A.7.2"
+      ],
+      "predicted": [
+        "A.7.1",
+        "A.7.2"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE11",
+      "question_id": "Q29",
+      "answer": "we figure it out as we go when something breaks",
+      "expected": [],
+      "predicted": [],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE12",
+      "question_id": "Q25",
+      "answer": "confidential files have a watermark, others don't have labels",
+      "expected": [
+        "A.5.12"
+      ],
+      "predicted": [
+        "A.5.12"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE13",
+      "question_id": "Q17",
+      "answer": "we did a big review last year when someone left the company",
+      "expected": [
+        "A.8.2",
+        "A.8.3"
+      ],
+      "predicted": [
+        "A.8.2",
+        "A.8.3"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE14",
+      "question_id": "Q08",
+      "answer": "we check LinkedIn and call references but no formal process",
+      "expected": [
+        "A.6.1"
+      ],
+      "predicted": [
+        "A.6.1"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE15",
+      "question_id": "Q19",
+      "answer": "Windows Defender is on by default, that counts right?",
+      "expected": [
+        "A.8.7"
+      ],
+      "predicted": [
+        "A.8.7"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE16",
+      "question_id": "Q04",
+      "answer": "vendors sign an NDA before we share anything sensitive",
+      "expected": [
+        "A.5.19",
+        "A.5.20"
+      ],
+      "predicted": [
+        "A.5.19",
+        "A.5.20"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE17",
+      "question_id": "Q26",
+      "answer": "we physically destroy old hard drives with a hammer",
+      "expected": [
+        "A.5.11",
+        "A.7.14"
+      ],
+      "predicted": [
+        "A.5.11",
+        "A.7.14"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE18",
+      "question_id": "Q23",
+      "answer": "a friend in IT once looked for obvious holes, found nothing",
+      "expected": [
+        "A.8.8",
+        "A.8.25"
+      ],
+      "predicted": [
+        "A.8.25",
+        "A.8.8"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE19",
+      "question_id": "Q06",
+      "answer": "we keep copies of important files on Google Drive",
+      "expected": [
+        "A.5.29",
+        "A.5.30"
+      ],
+      "predicted": [
+        "A.5.29",
+        "A.5.30"
+      ],
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "id": "AE20",
+      "question_id": "Q30",
+      "answer": "we tell the team what happened in the monthly meeting",
+      "expected": [
+        "A.5.27",
+        "A.5.28"
+      ],
+      "predicted": [
+        "A.5.27",
+        "A.5.28"
+      ],
+      "pass": true,
+      "reason": ""
+    }
+  ]
+}

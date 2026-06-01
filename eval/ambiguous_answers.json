@@ -1,0 +1,22 @@
+[
+    {"id": "AE01", "question_id": "Q27", "answer": "we kind of encrypt some laptops", "expected_ids": ["A.8.24"]},
+    {"id": "AE02", "question_id": "Q16", "answer": "users have a second step sometimes when logging in from outside", "expected_ids": ["A.8.5"]},
+    {"id": "AE03", "question_id": "Q01", "answer": "there's a document from 2019 we haven't really updated", "expected_ids": ["A.5.1"]},
+    {"id": "AE04", "question_id": "Q11", "answer": "we usually remove their email after a week or so", "expected_ids": ["A.6.5"]},
+    {"id": "AE05", "question_id": "Q22", "answer": "backups run automatically I think, not sure if anyone tests them", "expected_ids": ["A.8.13"]},
+    {"id": "AE06", "question_id": "Q28", "answer": "we use HTTPS on our website but not sure about the database", "expected_ids": ["A.8.24", "A.5.10"]},
+    {"id": "AE07", "question_id": "Q18", "answer": "IT applies patches quarterly unless something urgent comes up", "expected_ids": ["A.8.8"]},
+    {"id": "AE08", "question_id": "Q09", "answer": "new hires get a 30-minute video during onboarding", "expected_ids": ["A.6.3"]},
+    {"id": "AE09", "question_id": "Q24", "answer": "we have a spreadsheet somewhere listing our main servers", "expected_ids": ["A.5.9"]},
+    {"id": "AE10", "question_id": "Q12", "answer": "the server room has a lock and only IT staff have the key", "expected_ids": ["A.7.1", "A.7.2"]},
+    {"id": "AE11", "question_id": "Q29", "answer": "we figure it out as we go when something breaks", "expected_ids": []},
+    {"id": "AE12", "question_id": "Q25", "answer": "confidential files have a watermark, others don't have labels", "expected_ids": ["A.5.12"]},
+    {"id": "AE13", "question_id": "Q17", "answer": "we did a big review last year when someone left the company", "expected_ids": ["A.8.2", "A.8.3"]},
+    {"id": "AE14", "question_id": "Q08", "answer": "we check LinkedIn and call references but no formal process", "expected_ids": ["A.6.1"]},
+    {"id": "AE15", "question_id": "Q19", "answer": "Windows Defender is on by default, that counts right?", "expected_ids": ["A.8.7"]},
+    {"id": "AE16", "question_id": "Q04", "answer": "vendors sign an NDA before we share anything sensitive", "expected_ids": ["A.5.19", "A.5.20"]},
+    {"id": "AE17", "question_id": "Q26", "answer": "we physically destroy old hard drives with a hammer", "expected_ids": ["A.5.11", "A.7.14"]},
+    {"id": "AE18", "question_id": "Q23", "answer": "a friend in IT once looked for obvious holes, found nothing", "expected_ids": ["A.8.8", "A.8.25"]},
+    {"id": "AE19", "question_id": "Q06", "answer": "we keep copies of important files on Google Drive", "expected_ids": ["A.5.29", "A.5.30"]},
+    {"id": "AE20", "question_id": "Q30", "answer": "we tell the team what happened in the monthly meeting", "expected_ids": ["A.5.27", "A.5.28"]}
+]
