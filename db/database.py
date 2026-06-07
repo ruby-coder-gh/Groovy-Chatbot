@@ -13,27 +13,41 @@ import os
 import sys
 
 # ──────────────────────────────────────────────
-# Backend selection
+# Backend selection — PostgreSQL if available,
+# otherwise SQLite (with /tmp/ path on Vercel).
 # ──────────────────────────────────────────────
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+_USE_PG = False
 if DATABASE_URL:
+    # Try PostgreSQL — if connection fails, silently fall back to SQLite
+    try:
+        import psycopg2
+        from psycopg2 import sql as psql
+
+        # Auto-switch to Supabase pooler port 6543 for serverless
+        _db_url = DATABASE_URL
+        if ":5432/" in _db_url and os.environ.get("VERCEL", "").lower() == "true":
+            _db_url = _db_url.replace(":5432/", ":6543/")
+        if "connect_timeout" not in _db_url:
+            sep = "&" if "?" in _db_url else "?"
+            _db_url += f"{sep}connect_timeout=10"
+
+        # Quick connection test at import time
+        _test_conn = psycopg2.connect(_db_url, sslmode="require")
+        _test_conn.close()
+        _USE_PG = True
+        print("✅ PostgreSQL connected successfully")
+    except Exception as _pg_err:
+        print(f"⚠️ PostgreSQL unavailable ({_pg_err}), falling back to SQLite")
+
+if _USE_PG:
     # ══════════════════════════════════════════
     # POSTGRESQL BACKEND
     # ══════════════════════════════════════════
     import psycopg2
     import psycopg2.extras
     from psycopg2 import sql as psql
-
-    # Fix: Serverless (Vercel) needs the Supabase pooler on port 6543 + IPv4
-    _db_url = DATABASE_URL
-    # Auto-switch to pooler port 6543 for serverless environments
-    if ":5432/" in _db_url and os.environ.get("VERCEL", "").lower() == "true":
-        _db_url = _db_url.replace(":5432/", ":6543/")
-    # Append connect_timeout if not present
-    if "connect_timeout" not in _db_url:
-        separator = "&" if "?" in _db_url else "?"
-        _db_url += f"{separator}connect_timeout=10"
 
     def get_connection():
         """Return a PostgreSQL connection (dict-like rows)."""
@@ -42,24 +56,20 @@ if DATABASE_URL:
         return conn
 
     def _fetchone_dict(conn, query, params=()):
-        """Execute query, return one row as dict or None."""
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(query, params)
             return cur.fetchone()
 
     def _fetchall_dicts(conn, query, params=()):
-        """Execute query, return all rows as list of dicts."""
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(query, params)
             return [dict(r) for r in cur.fetchall()]
 
     def _execute(conn, query, params=()):
-        """Execute a write query, return cursor."""
         with conn.cursor() as cur:
             cur.execute(query, params)
             return cur
 
-    # ── Schema ───────────────────────────────
     SCHEMA_SQL = """
         CREATE TABLE IF NOT EXISTS sessions (
             id TEXT PRIMARY KEY,
@@ -69,7 +79,6 @@ if DATABASE_URL:
             current_question_index INTEGER DEFAULT 0,
             status TEXT DEFAULT 'active'
         );
-
         CREATE TABLE IF NOT EXISTS answers (
             id SERIAL PRIMARY KEY,
             session_id TEXT REFERENCES sessions(id),
@@ -79,90 +88,46 @@ if DATABASE_URL:
             matched_control_ids TEXT,
             answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS domain_scores (
-            session_id TEXT,
-            domain_name TEXT,
-            score INTEGER,
-            covered_questions INTEGER,
-            total_questions INTEGER,
+            session_id TEXT, domain_name TEXT, score INTEGER,
+            covered_questions INTEGER, total_questions INTEGER,
             gap_control_ids TEXT,
             PRIMARY KEY (session_id, domain_name)
         );
-
         CREATE TABLE IF NOT EXISTS priority_matrix (
-            session_id TEXT PRIMARY KEY,
-            fix_now TEXT,
-            plan_for_it TEXT,
-            quick_wins TEXT,
-            deprioritize TEXT,
+            session_id TEXT PRIMARY KEY, fix_now TEXT,
+            plan_for_it TEXT, quick_wins TEXT, deprioritize TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            company_name TEXT DEFAULT '',
+            id SERIAL PRIMARY KEY, email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL, company_name TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS remediation_plans (
-            session_id TEXT NOT NULL,
-            control_id TEXT NOT NULL,
-            domain TEXT NOT NULL,
-            description TEXT NOT NULL,
-            effort_hours INTEGER NOT NULL DEFAULT 0,
-            owner TEXT NOT NULL DEFAULT '',
+            session_id TEXT NOT NULL, control_id TEXT NOT NULL,
+            domain TEXT NOT NULL, description TEXT NOT NULL,
+            effort_hours INTEGER NOT NULL DEFAULT 0, owner TEXT NOT NULL DEFAULT '',
             generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (session_id, control_id)
         );
-
         CREATE TABLE IF NOT EXISTS policy_templates (
-            session_id TEXT NOT NULL,
-            control_id TEXT NOT NULL,
-            title TEXT NOT NULL,
-            clause TEXT NOT NULL,
+            session_id TEXT NOT NULL, control_id TEXT NOT NULL,
+            title TEXT NOT NULL, clause TEXT NOT NULL,
             generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (session_id, control_id)
         );
     """
 
-    # ── Public API ───────────────────────────
-
-    # ── Fallback flag ─────────────────────────
-    _pg_healthy = True
-
     def init_db():
-        """Create tables if they don't exist. Graceful on connection failure."""
-        global _pg_healthy
-        conn = None
-        try:
-            conn = get_connection()
-        except Exception as e:
-            print(f"⚠️ PostgreSQL connection failed: {e}")
-            _pg_healthy = False
-            return
-
+        """Create tables if they don't exist."""
+        conn = get_connection()
         try:
             with conn.cursor() as cur:
                 cur.execute(SCHEMA_SQL)
             conn.commit()
-            _pg_healthy = True
-        except Exception as e:
-            print(f"⚠️ PostgreSQL init failed: {e}")
-            _pg_healthy = False
         finally:
-            if conn:
-                conn.close()
-
-    def _require_pg():
-        """Check that PostgreSQL is healthy before every operation."""
-        if not _pg_healthy:
-            raise RuntimeError(
-                "Database unavailable. Please check your DATABASE_URL "
-                "environment variable and ensure Supabase is running."
-            )
+            conn.close()
 
     def create_session(session_id, company_name):
         conn = get_connection()
@@ -178,8 +143,7 @@ if DATABASE_URL:
     def get_session(session_id):
         conn = get_connection()
         try:
-            row = _fetchone_dict(conn, "SELECT * FROM sessions WHERE id = %s", (session_id,))
-            return row
+            return _fetchone_dict(conn, "SELECT * FROM sessions WHERE id = %s", (session_id,))
         finally:
             conn.close()
 
@@ -389,7 +353,7 @@ if DATABASE_URL:
 
 else:
     # ══════════════════════════════════════════
-    # SQLITE BACKEND (local development)
+    # SQLITE BACKEND (default, also fallback on Vercel)
     # ══════════════════════════════════════════
     import sqlite3
 
