@@ -43,19 +43,22 @@ A Flask-based conversational chatbot that guides an SME through **30 ISO 27001:2
 
 ```
 iso27001-chatbot/
-├── app.py                    # Flask app entry point
+├── api/
+│   └── index.py               # Vercel serverless entry point
+├── app.py                     # Flask app entry point
 ├── requirements.txt
-├── .env.example              # Environment variable template
-├── config.py                 # Configuration loader
+├── .env.example               # Environment variable template
+├── config.py                  # Configuration loader (Vercel-aware)
+├── vercel.json                # Vercel deployment configuration
 ├── data/
-│   └── control_map.json      # 30 control entries with IDs and descriptions
+│   └── control_map.json       # 30 control entries with IDs and descriptions
 ├── db/
-│   └── database.py           # SQLite session and answer storage
+│   └── database.py            # Dual SQLite/PostgreSQL database layer
 ├── modules/
-│   ├── questionnaire.py      # 30 questions across 7 domains
-│   ├── llm_mapper.py         # Gemini API integration for control mapping
-│   ├── scorer.py             # Domain scoring logic (0–100)
-│   └── pdf_generator.py      # ReportLab PDF gap report generator
+│   ├── questionnaire.py       # 30 questions across 7 domains
+│   ├── llm_mapper.py          # Gemini API integration for control mapping
+│   ├── scorer.py              # Domain scoring logic (0–100)
+│   └── pdf_generator.py       # ReportLab PDF gap report generator
 ├── eval/
 │   ├── ambiguous_answers.json # 20 adversarial test inputs
 │   ├── run_eval.py            # Evaluation runner
@@ -64,7 +67,8 @@ iso27001-chatbot/
 │   ├── style.css
 │   └── chat.js
 └── templates/
-    └── index.html
+    ├── index.html
+    └── dashboard.html
 ```
 
 ## API Routes
@@ -97,6 +101,47 @@ The evaluation tests the LLM mapper against 20 ambiguous answers. A score of **�
 6. **Cryptography** (A.8.24) — 2 questions
 7. **Incident Management** (A.5.24–A.5.28) — 2 questions
 
+## Deploy to Vercel
+
+This project is ready to deploy on **Vercel** (free tier) with persistent **PostgreSQL** storage.
+
+### One-click Database Setup (Supabase — Free)
+
+1. Go to [supabase.com](https://supabase.com) and create a free account
+2. Create a new project (free tier = 500 MB database)
+3. In your project dashboard, go to **Project Settings → Database → Connection string**
+4. Copy the **URI** connection string (starts with `postgresql://`)
+5. It will look like: `postgresql://postgres.xxxx:password@aws-0-xxx.pooler.supabase.com:5432/postgres`
+
+### Deploy to Vercel
+
+1. Push your code to GitHub
+2. Go to [vercel.com/new](https://vercel.com/new) and import your repo
+3. Vercel auto-detects Python + the `vercel.json` config
+4. In **Environment Variables**, add:
+
+| Variable | Value |
+|----------|-------|
+| `GEMINI_API_KEY` | Your Google Gemini API key |
+| `DATABASE_URL` | The Supabase/Neon PostgreSQL connection string |
+| `FLASK_DEBUG` | `0` |
+| `VERCEL` | `true` |
+| `PYTHON_VERSION` | `3.13` |
+
+5. Click **Deploy** — done!
+
+> **Note:** If you don't set `DATABASE_URL`, the app falls back to SQLite in `/tmp/` (ephemeral — data lost on cold starts). For persistent data, always set `DATABASE_URL`.
+
+### Local Development with PostgreSQL (Optional)
+
+```bash
+# Set the same DATABASE_URL locally to test against PostgreSQL
+export DATABASE_URL="postgresql://postgres.xxxx:password@aws-0-xxx.pooler.supabase.com:5432/postgres"
+python app.py
+```
+
+Without `DATABASE_URL`, it uses SQLite (no setup needed).
+
 ## What I Would Do With More Time
 
 - Add voice input via Web Speech API for hands-free assessment
@@ -113,7 +158,7 @@ The evaluation tests the LLM mapper against 20 ambiguous answers. A score of **�
 - **Backend:** Flask (Python 3.10+)
 - **LLM:** Google Gemini 1.5 Flash (free tier)
 - **PDF:** ReportLab
-- **Storage:** SQLite
+- **Storage:** SQLite (local dev) / PostgreSQL via Supabase or Neon (production)
 - **Frontend:** Vanilla HTML + CSS + JavaScript
 
 ## License

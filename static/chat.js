@@ -18,6 +18,11 @@
         isProcessing: false,
         priorityMatrixLoaded: false,
         user: null,
+        remediationPlans: [],
+        remediationTemplates: [],
+        remediationLoaded: false,
+        remediationLoadingIndex: 0,
+        remediationLoadingTimer: null,
     };
 
     // ============================
@@ -209,6 +214,25 @@
     const viewPriorityBtn = $("view-priority-btn");
     const priorityLoading = $("priority-loading");
     const priorityGrid = $("priority-grid");
+    // Remediation elements
+    const remediationSection = $("remediation-section");
+    const generateRemediationBtn = $("generate-remediation-btn");
+    const remediationLoading = $("remediation-loading");
+    const remediationLoadingMsg = $("remediation-loading-message");
+    const remediationError = $("remediation-error");
+    const remediationSummary = $("remediation-summary");
+    const summaryControls = $("summary-controls");
+    const summaryHours = $("summary-hours");
+    const summaryDomains = $("summary-domains");
+    const remediationSortBar = $("remediation-sort-bar");
+    const remediationAccordion = $("remediation-accordion");
+    const remediationExportBar = $("remediation-export-bar");
+    const exportCsvBtn = $("export-csv-btn");
+    const policyTemplatesSection = $("policy-templates-section");
+    const policyTemplatesList = $("policy-templates-list");
+    const expandAllBtn = $("expand-all-btn");
+    const collapseAllBtn = $("collapse-all-btn");
+    const dashboardPill = $("dashboard-pill");
     // Auth elements
     const userEmailDisplay = $("user-email-display");
     const logoutBtn = $("logout-btn");
@@ -274,6 +298,16 @@
     // View Priority Matrix
     viewPriorityBtn.addEventListener("click", loadPriorityMatrix);
 
+    // Generate Remediation Plan
+    generateRemediationBtn.addEventListener("click", generateRemediationPlan);
+
+    // Export CSV
+    exportCsvBtn.addEventListener("click", exportRemediationCsv);
+
+    // Expand / Collapse All
+    expandAllBtn.addEventListener("click", () => toggleAllAccordionItems(true));
+    collapseAllBtn.addEventListener("click", () => toggleAllAccordionItems(false));
+
     // Home button
     const homeBtn = $("home-btn");
     homeBtn.addEventListener("click", goHome);
@@ -311,6 +345,11 @@
             STATE.sessionId = data.session_id;
             STATE.totalQuestions = data.total_questions || 30;
             STATE.currentIndex = data.question_index;
+
+            if (data.dashboard_url) {
+                dashboardPill.href = data.dashboard_url;
+                dashboardPill.style.display = "flex";
+            }
 
             switchToChat();
             addBotMessage(data.question.text, data.question.hint);
@@ -365,26 +404,12 @@
                     data.question.domain
                 );
 
-                // Show matched controls in a subtle way
-                if (data.matched_controls && data.matched_controls.length > 0) {
-                    addSystemMessage(
-                        "Matched controls: " + data.matched_controls.join(", ")
-                    );
-                }
-
                 addBotMessage(data.question.text, data.question.hint);
                 hintText.textContent = data.question.hint || "";
                 answerInput.focus();
             } else if (data.status === "done") {
                 STATE.isComplete = true;
                 hintText.textContent = "";
-
-                // Show matched controls for last answer
-                if (data.matched_controls && data.matched_controls.length > 0) {
-                    addSystemMessage(
-                        "Matched controls: " + data.matched_controls.join(", ")
-                    );
-                }
 
                 // Brief delay then show results
                 setTimeout(() => {
@@ -423,17 +448,23 @@
         const overall = data.overall_score || 0;
         overallScoreValue.textContent = overall;
 
+        // Animate conic gradient percentage on the score ring
+        const scoreRing = document.querySelector(".overall-score-ring");
+        if (scoreRing) {
+            scoreRing.style.setProperty("--pct", overall + "%");
+        }
+
         let statusText = "";
         let statusColor = "";
         if (overall >= 70) {
             statusText = "Good — Your organization shows strong ISO 27001 readiness.";
-            statusColor = "#00c853";
+            statusColor = "#10b981";
         } else if (overall >= 40) {
             statusText = "Moderate — Several gaps identified. Priority improvements recommended.";
-            statusColor = "#ff9800";
+            statusColor = "#f59e0b";
         } else {
             statusText = "Needs Improvement — Significant gaps exist across multiple domains.";
-            statusColor = "#f44336";
+            statusColor = "#ef4444";
         }
         overallStatusText.textContent = statusText;
         overallStatusText.style.color = statusColor;
@@ -492,8 +523,9 @@
             domainCards.appendChild(card);
         });
 
-        // Show the Priority Matrix section after domain cards
+        // Show the Priority Matrix and Remediation sections after domain cards
         priorityMatrixSection.style.display = "block";
+        remediationSection.style.display = "block";
     }
 
     // ============================
@@ -578,6 +610,334 @@
                 listEl.appendChild(pill);
             });
         });
+    }
+
+    // ============================
+    // Remediation Plan
+    // ============================
+
+    const REMEDIATION_MESSAGES = [
+        "Consulting AI for remediation strategies...",
+        "Analyzing gap control requirements...",
+        "Estimating effort hours for each control...",
+        "Assigning ownership roles...",
+        "Generating policy template clauses...",
+        "Finalizing remediation roadmap...",
+    ];
+
+    function generateRemediationPlan() {
+        if (!STATE.sessionId) return;
+
+        generateRemediationBtn.style.display = "none";
+        remediationLoading.style.display = "flex";
+        remediationError.style.display = "none";
+        remediationAccordion.style.display = "none";
+        remediationSummary.style.display = "none";
+        remediationSortBar.style.display = "none";
+        remediationExportBar.style.display = "none";
+        policyTemplatesSection.style.display = "none";
+
+        // Start cycling loading messages
+        STATE.remediationLoadingIndex = 0;
+        remediationLoadingMsg.textContent = REMEDIATION_MESSAGES[0];
+        STATE.remediationLoadingTimer = setInterval(() => {
+            STATE.remediationLoadingIndex = (STATE.remediationLoadingIndex + 1) % REMEDIATION_MESSAGES.length;
+            remediationLoadingMsg.textContent = REMEDIATION_MESSAGES[STATE.remediationLoadingIndex];
+        }, 2500);
+
+        fetch(`/api/remediation/${STATE.sessionId}`, {
+            method: "POST",
+        })
+        .then((res) => {
+            // Handle non-JSON or error responses gracefully
+            const contentType = res.headers.get("content-type") || "";
+            if (!contentType.includes("application/json")) {
+                if (res.status === 429 || res.status === 500) {
+                    throw new Error("RATE_LIMIT");
+                }
+                throw new Error("INVALID_RESPONSE");
+            }
+            return res.json();
+        })
+        .then((data) => {
+            clearInterval(STATE.remediationLoadingTimer);
+            remediationLoading.style.display = "none";
+
+            if (data.error) {
+                // Show friendly message for quota errors
+                const isQuota = data.error.includes("429") || data.error.includes("quota") || data.error.includes("rate limit");
+                if (isQuota) {
+                    // Extract retry delay from Gemini's "Please retry in Xs" message
+                    const retryMatch = data.error.match(/retry\s+in\s+(\d+(?:\.\d+)?)s/i);
+                    let retrySeconds = 60;
+                    if (retryMatch && retryMatch[1]) {
+                        retrySeconds = Math.ceil(parseFloat(retryMatch[1]));
+                    }
+                    remediationError.innerHTML = `
+                        &#x26A0;&#xFE0F; <strong>AI service temporarily unavailable</strong><br>
+                        The Gemini API free-tier quota has been reached.<br>
+                        Please wait <span id="retry-countdown">${retrySeconds}</span> seconds, then try again.
+                        <br><br>
+                        <button id="retry-remediation-btn" class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;padding:8px 20px;border-radius:20px;cursor:pointer;">
+                            &#x1F504; Retry Now
+                        </button>
+                    `;
+                    // Countdown timer
+                    let seconds = retrySeconds;
+                    const countdownEl = document.getElementById("retry-countdown");
+                    const countdownTimer = setInterval(() => {
+                        seconds--;
+                        if (countdownEl) countdownEl.textContent = Math.max(0, seconds);
+                        if (seconds <= 0) {
+                            clearInterval(countdownTimer);
+                            if (countdownEl) countdownEl.textContent = "0";
+                        }
+                    }, 1000);
+                    // Retry button
+                    setTimeout(() => {
+                        const retryBtn = document.getElementById("retry-remediation-btn");
+                        if (retryBtn) {
+                            retryBtn.addEventListener("click", () => {
+                                clearInterval(countdownTimer);
+                                generateRemediationPlan();
+                            });
+                        }
+                    }, 0);
+                } else {
+                    remediationError.textContent = "⚠️ " + data.error;
+                }
+                remediationError.style.display = "block";
+                generateRemediationBtn.style.display = "inline-flex";
+                return;
+            }
+
+            STATE.remediationPlans = data.plans || [];
+            STATE.remediationTemplates = data.policy_templates || [];
+            STATE.remediationLoaded = true;
+
+            // Invalidate cached PDF URL so download regenerates with remediation data
+            downloadPdfBtn.dataset.url = "";
+
+            renderRemediationPlan(data.plans, data.policy_templates);
+        })
+        .catch((err) => {
+            console.error("Remediation error:", err);
+            clearInterval(STATE.remediationLoadingTimer);
+            remediationLoading.style.display = "none";
+            const isQuota = err.message === "RATE_LIMIT";
+            if (isQuota) {
+                remediationError.innerHTML = `
+                    &#x26A0;&#xFE0F; <strong>AI service temporarily unavailable</strong><br>
+                    The Gemini API free-tier quota has been reached. Please wait a moment and try again.
+                    <br><br>
+                    <button id="retry-remediation-btn" class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;padding:8px 20px;border-radius:20px;cursor:pointer;">
+                        &#x1F504; Retry Now
+                    </button>
+                `;
+                setTimeout(() => {
+                    const retryBtn = document.getElementById("retry-remediation-btn");
+                    if (retryBtn) {
+                        retryBtn.addEventListener("click", generateRemediationPlan);
+                    }
+                }, 0);
+            } else {
+                remediationError.innerHTML = `
+                    &#x1F6AB; <strong>Network error</strong><br>
+                    Could not connect to the server. Please check your connection and try again.
+                `;
+            }
+            remediationError.style.display = "block";
+            generateRemediationBtn.style.display = "inline-flex";
+        });
+    }
+
+    function renderRemediationPlan(plans, templates) {
+        if (!plans || plans.length === 0) {
+            remediationAccordion.innerHTML = `
+                <div class="remediation-empty">
+                    &#x2705; No gaps found — all controls are adequately addressed!
+                </div>
+            `;
+            remediationAccordion.style.display = "block";
+            return;
+        }
+
+        // Summary bar
+        const totalHours = plans.reduce((sum, p) => sum + (p.effort_hours || 0), 0);
+        const uniqueDomains = [...new Set(plans.map((p) => p.domain))];
+        summaryControls.textContent = plans.length;
+        summaryHours.textContent = totalHours;
+        summaryDomains.textContent = uniqueDomains.length;
+        remediationSummary.style.display = "flex";
+        remediationSortBar.style.display = "flex";
+        remediationExportBar.style.display = "flex";
+
+        // Render accordion with default sort (domain)
+        renderAccordion(plans);
+        remediationAccordion.style.display = "block";
+
+        // Set sort button handlers
+        document.querySelectorAll(".sort-btn[data-sort]").forEach((btn) => {
+            btn.addEventListener("click", function () {
+                document.querySelectorAll(".sort-btn[data-sort]").forEach((b) => b.classList.remove("active"));
+                this.classList.add("active");
+                const sortBy = this.dataset.sort;
+                const sorted = sortPlans(plans, sortBy);
+                renderAccordion(sorted);
+            });
+        });
+
+        // Policy templates
+        if (templates && templates.length > 0) {
+            renderPolicyTemplates(templates);
+            policyTemplatesSection.style.display = "block";
+        }
+    }
+
+    function renderAccordion(plans) {
+        const container = remediationAccordion;
+        container.innerHTML = "";
+
+        plans.forEach((plan, index) => {
+            const item = document.createElement("div");
+            item.className = "accordion-item";
+
+            // Effort badge color
+            const hours = plan.effort_hours || 0;
+            let badgeClass = "badge-effort-low";
+            if (hours > 30) badgeClass = "badge-effort-high";
+            else if (hours > 7) badgeClass = "badge-effort-medium";
+
+            item.innerHTML = `
+                <div class="accordion-header" data-index="${index}">
+                    <span class="accordion-toggle">&#x25B6;</span>
+                    <span class="accordion-control-id">${escapeHtml(plan.control_id)}</span>
+                    <span class="accordion-domain">${escapeHtml(plan.domain)}</span>
+                    <span class="accordion-owner">${escapeHtml(plan.owner)}</span>
+                    <span class="effort-badge ${badgeClass}">${hours}h</span>
+                </div>
+                <div class="accordion-body">
+                    <div class="accordion-description">${escapeHtml(plan.description)}</div>
+                    <div class="accordion-meta">
+                        <span><strong>Owner:</strong> ${escapeHtml(plan.owner)}</span>
+                        <span><strong>Effort:</strong> ${hours} hours</span>
+                        <span><strong>Domain:</strong> ${escapeHtml(plan.domain)}</span>
+                    </div>
+                </div>
+            `;
+
+            // Toggle on header click
+            item.querySelector(".accordion-header").addEventListener("click", () => {
+                const body = item.querySelector(".accordion-body");
+                const toggle = item.querySelector(".accordion-toggle");
+                const isOpen = body.classList.contains("open");
+                body.classList.toggle("open");
+                toggle.classList.toggle("open");
+                toggle.innerHTML = isOpen ? "&#x25B6;" : "&#x25BC;";
+            });
+
+            container.appendChild(item);
+        });
+    }
+
+    function sortPlans(plans, sortBy) {
+        const sorted = [...plans];
+        switch (sortBy) {
+            case "domain":
+                sorted.sort((a, b) => a.domain.localeCompare(b.domain) || a.control_id.localeCompare(b.control_id));
+                break;
+            case "effort":
+                sorted.sort((a, b) => (a.effort_hours || 0) - (b.effort_hours || 0));
+                break;
+            case "owner":
+                sorted.sort((a, b) => a.owner.localeCompare(b.owner) || a.control_id.localeCompare(b.control_id));
+                break;
+        }
+        return sorted;
+    }
+
+    function toggleAllAccordionItems(expand) {
+        document.querySelectorAll(".accordion-body").forEach((body) => {
+            body.classList.toggle("open", expand);
+        });
+        document.querySelectorAll(".accordion-toggle").forEach((toggle) => {
+            toggle.classList.toggle("open", expand);
+            toggle.innerHTML = expand ? "&#x25BC;" : "&#x25B6;";
+        });
+    }
+
+    function renderPolicyTemplates(templates) {
+        policyTemplatesList.innerHTML = "";
+
+        templates.forEach((tmpl) => {
+            const block = document.createElement("div");
+            block.className = "policy-block";
+
+            block.innerHTML = `
+                <div class="policy-block-header">
+                    <strong>${escapeHtml(tmpl.title)}</strong>
+                    <span class="policy-control-id">${escapeHtml(tmpl.control_id)}</span>
+                </div>
+                <blockquote class="policy-clause">${escapeHtml(tmpl.clause)}</blockquote>
+                <button class="btn btn-sm copy-template-btn" data-clause="${escapeHtml(tmpl.clause)}">
+                    &#x1F4CB; Copy template
+                </button>
+                <span class="copy-feedback" style="display:none;">Copied &#x2714;</span>
+            `;
+
+            block.querySelector(".copy-template-btn").addEventListener("click", function () {
+                const clause = this.dataset.clause;
+                navigator.clipboard.writeText(clause).then(() => {
+                    const feedback = this.nextElementSibling;
+                    feedback.style.display = "inline";
+                    setTimeout(() => {
+                        feedback.style.display = "none";
+                    }, 2000);
+                }).catch(() => {
+                    // Fallback
+                    const textarea = document.createElement("textarea");
+                    textarea.value = clause;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textarea);
+                    const feedback = this.nextElementSibling;
+                    feedback.style.display = "inline";
+                    setTimeout(() => {
+                        feedback.style.display = "none";
+                    }, 2000);
+                });
+            });
+
+            policyTemplatesList.appendChild(block);
+        });
+    }
+
+    function exportRemediationCsv() {
+        const plans = STATE.remediationPlans;
+        if (!plans || plans.length === 0) return;
+
+        // BOM for Excel UTF-8
+        const BOM = "\uFEFF";
+        const headers = ["Control ID", "Domain", "Description", "Effort Hours", "Owner"];
+        const rows = plans.map((p) => [
+            p.control_id,
+            p.domain,
+            `"${(p.description || "").replace(/"/g, '""')}"`,
+            p.effort_hours || 0,
+            p.owner,
+        ]);
+
+        const csv = BOM + headers.join(",") + "\n" + rows.map((r) => r.join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `remediation_plan_${STATE.sessionId || "export"}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     function updateProgress(index, total, domain) {
@@ -711,6 +1071,17 @@
         STATE.isComplete = false;
         STATE.isProcessing = false;
         STATE.priorityMatrixLoaded = false;
+        STATE.remediationPlans = [];
+        STATE.remediationTemplates = [];
+        STATE.remediationLoaded = false;
+        if (STATE.remediationLoadingTimer) {
+            clearInterval(STATE.remediationLoadingTimer);
+            STATE.remediationLoadingTimer = null;
+        }
+        if (dashboardPill) {
+            dashboardPill.style.display = "none";
+            dashboardPill.href = "#";
+        }
     }
 
     function resetPriorityMatrixUI() {
@@ -723,6 +1094,22 @@
             const el = document.getElementById(id);
             if (el) el.innerHTML = "";
         });
+        // Reset remediation UI
+        remediationSection.style.display = "none";
+        generateRemediationBtn.style.display = "inline-flex";
+        remediationLoading.style.display = "none";
+        remediationError.style.display = "none";
+        remediationAccordion.style.display = "none";
+        remediationAccordion.innerHTML = "";
+        remediationSummary.style.display = "none";
+        remediationSortBar.style.display = "none";
+        remediationExportBar.style.display = "none";
+        policyTemplatesSection.style.display = "none";
+        policyTemplatesList.innerHTML = "";
+        if (STATE.remediationLoadingTimer) {
+            clearInterval(STATE.remediationLoadingTimer);
+            STATE.remediationLoadingTimer = null;
+        }
     }
 
     function escapeHtml(text) {

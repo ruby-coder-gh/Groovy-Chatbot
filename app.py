@@ -6,9 +6,10 @@ Provides 6 API routes for session management, Q&A, reporting, and PDF download.
 import os
 import uuid
 import json
+import time
 from datetime import datetime
 
-from flask import Flask, request, jsonify, render_template, send_from_directory, session
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, Response, stream_with_context
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import CONTROL_MAP, PDF_DIR
@@ -18,13 +19,15 @@ from db.database import (
     complete_session, save_answer, get_answers, save_domain_score,
     get_domain_scores, save_priority_matrix, get_priority_matrix,
     create_user, get_user_by_email, get_user_by_id,
+    get_remediation_plans, delete_remediation_plans, save_remediation_plan,
+    get_policy_templates, delete_policy_templates, save_policy_template,
 )
 from modules.questionnaire import (
     get_question, get_all_domains, get_total_questions,
     DOMAIN_QUESTIONS,
 )
 from modules.llm_mapper import map_answer_to_controls
-from modules.scorer import calculate_domain_scores, get_overall_score
+from modules.scorer import calculate_domain_scores, get_overall_score, calculate_partial_scores
 from modules.pdf_generator import generate_gap_report
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -63,6 +66,7 @@ def api_start():
 
     return jsonify({
         "session_id": session_id,
+        "dashboard_url": f"/dashboard/{session_id}",
         "question": first_q,
         "question_index": 0,
         "total_questions": get_total_questions(),
@@ -183,7 +187,10 @@ def api_report(session_id):
 
     # Check for cached priority matrix (may need to regenerate PDF to include it)
     priority_matrix = get_priority_matrix(session_id)
-    needs_rebuild = priority_matrix is not None or not os.path.exists(report_path)
+    remediation_plans = get_remediation_plans(session_id)
+    policy_templates = get_policy_templates(session_id)
+    needs_rebuild = (priority_matrix is not None or remediation_plans
+                     or not os.path.exists(report_path))
 
     if needs_rebuild:
         all_answers = get_answers(session_id)
@@ -219,6 +226,8 @@ def api_report(session_id):
             CONTROL_MAP,
             report_path,
             priority_matrix=priority_matrix,
+            remediation_plans=remediation_plans,
+            policy_templates=policy_templates,
         )
 
     return jsonify({
@@ -283,6 +292,118 @@ def api_scores(session_id):
             "overall_score": overall,
             "company_name": session["company_name"],
         })
+
+
+@app.route('/api/stream/<session_id>')
+def stream(session_id):
+    def event_stream():
+        last_index = -1
+        while True:
+            session_data = get_session(session_id)
+            if not session_data:
+                break
+            current_index = session_data['current_question_index']
+            status = 'done' if session_data['status'] == 'completed' else 'active'
+
+            if current_index != last_index or status == 'done':
+                last_index = current_index
+                all_answers = get_answers(session_id)
+                session_results = []
+                for ans in all_answers:
+                    session_results.append({
+                        "question_id": ans["question_id"],
+                        "matched_controls": json.loads(ans["matched_control_ids"]),
+                        "user_answer": ans["user_answer"],
+                        "question_text": ans["question_text"],
+                    })
+                scores = calculate_partial_scores(session_results, CONTROL_MAP)
+
+                latest_ans = None
+                if all_answers:
+                    last_ans = all_answers[-1]
+                    latest_ans = {
+                        "question_id": last_ans["question_id"],
+                        "question_text": last_ans["question_text"],
+                        "user_answer": last_ans["user_answer"],
+                        "matched_controls": json.loads(last_ans["matched_control_ids"]),
+                        "answered_at": last_ans["answered_at"]
+                    }
+
+                payload = {
+                    "progress": current_index,
+                    "total": 30,
+                    "scores": scores,
+                    "latest_answer": latest_ans,
+                    "status": status
+                }
+                yield f"data: {json.dumps(payload)}\n\n"
+
+            if status == 'done':
+                break
+            time.sleep(1.5)
+
+    return Response(
+        stream_with_context(event_stream()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no'
+        }
+    )
+
+
+@app.route('/api/executive-summary/<session_id>')
+def executive_summary(session_id):
+    scores = get_domain_scores(session_id)
+    if not scores:
+        return "Assessment not complete or session not found", 400
+
+    db_scores = [dict(s) for s in scores]
+    all_gaps = []
+    for ds in db_scores:
+        gaps_list = json.loads(ds["gap_control_ids"])
+        all_gaps.extend(gaps_list)
+    gaps = sorted(list(set(all_gaps)))
+
+    prompt = f"""
+You are a CISO writing a board-level executive summary for an ISO 27001
+readiness assessment. Write exactly 4 paragraphs, no headers, no bullets.
+
+Paragraph 1: Overall readiness posture (2-3 sentences, reference the
+overall score and strongest domain)
+Paragraph 2: Critical gaps and their business risk (2-3 sentences,
+mention specific control IDs)
+Paragraph 3: Top 3 immediate actions the organisation should take
+(2-3 sentences, specific and actionable)  
+Paragraph 4: Closing recommendation on ISO 27001 certification
+readiness (1-2 sentences)
+
+Assessment data:
+Domain scores: {json.dumps(db_scores)}
+Gap controls: {gaps}
+Tone: Professional, direct, board-appropriate. No fluff.
+"""
+    def generate():
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt, stream=True)
+        for chunk in response:
+            if chunk.text:
+                yield f"data: {json.dumps({'chunk': chunk.text})}\n\n"
+        yield f"data: {json.dumps({'done': True})}\n\n"
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    )
+
+
+@app.route("/dashboard/<session_id>")
+def dashboard(session_id):
+    session_data = get_session(session_id)
+    if not session_data:
+        return "Session not found", 404
+    return render_template("dashboard.html", session_id=session_id)
 
 
 @app.route("/api/priority/<session_id>", methods=["POST"])
@@ -405,6 +526,211 @@ Quadrant definitions:
 
     except Exception as e:
         return jsonify({"error": f"Failed to generate priority matrix: {str(e)}"}), 500
+
+
+# ============================================================
+# Remediation Plan (AI-generated)
+# ============================================================
+
+@app.route("/api/remediation/<session_id>", methods=["GET"])
+def api_get_remediation(session_id):
+    """
+    GET: Return cached remediation plans and policy templates for a session.
+    Returns 404 if no cached plan exists.
+    """
+    plans = get_remediation_plans(session_id)
+    templates = get_policy_templates(session_id)
+
+    if not plans:
+        return jsonify({"error": "No remediation plan found. Generate one first."}), 404
+
+    return jsonify({
+        "plans": plans,
+        "policy_templates": templates,
+    })
+
+
+@app.route("/api/remediation/<session_id>", methods=["POST"])
+def api_generate_remediation(session_id):
+    """
+    POST: Generate a Remediation Plan using Gemini.
+    For each gap control ID, produces: description, effort_hours, owner.
+    Also generates policy templates for controls that typically require written policies.
+    Caches results in the database.
+    """
+    session = get_session(session_id)
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+
+    # Check if already cached
+    cached_plans = get_remediation_plans(session_id)
+    if cached_plans:
+        templates = get_policy_templates(session_id)
+        return jsonify({
+            "plans": cached_plans,
+            "policy_templates": templates,
+        })
+
+    # Fetch all gap control IDs from domain_scores
+    db_scores = get_domain_scores(session_id)
+    if not db_scores:
+        return jsonify({"error": "No domain scores found. Complete the assessment first."}), 400
+
+    all_gap_ids = []
+    for ds in db_scores:
+        gaps = json.loads(ds["gap_control_ids"])
+        all_gap_ids.extend(gaps)
+
+    all_gap_ids = sorted(set(all_gap_ids))
+
+    if not all_gap_ids:
+        return jsonify({
+            "plans": [],
+            "policy_templates": [],
+            "message": "No gaps found — everything is covered!",
+        })
+
+    # Build control_id -> description/domain map from control_map.json
+    control_info_map = {}
+    for q_id, q_data in CONTROL_MAP.items():
+        domain = q_data.get("domain", "")
+        for ctrl_id, desc in q_data.get("descriptions", {}).items():
+            if ctrl_id not in control_info_map:
+                control_info_map[ctrl_id] = {"description": desc, "domain": domain}
+
+    # Build gap list for the prompt
+    gap_list_for_prompt = []
+    for cid in all_gap_ids:
+        info = control_info_map.get(cid, {})
+        gap_list_for_prompt.append({
+            "id": cid,
+            "domain": info.get("domain", ""),
+            "description": info.get("description", ""),
+        })
+
+    # Build prompt for Gemini
+    prompt = f"""You are an ISO 27001 consultant. For each gap control ID below, provide a remediation plan with:
+1. A clear description of what needs to be done (2-3 sentences)
+2. Estimated effort hours (integer, 1-200)
+3. The role/person responsible (e.g. "CISO", "IT Manager", "HR Director")
+
+Also generate policy template clauses for controls that typically require written policies: A.5.1, A.5.8, A.5.24, A.5.29, A.5.31, A.6.2, A.7.7, A.8.13, A.5.9, A.5.10, A.5.11, A.5.12, A.5.19, A.5.35, A.8.8, A.8.24.
+
+Return ONLY valid JSON, no explanation, no markdown.
+
+Gap controls to plan: {json.dumps(gap_list_for_prompt, indent=2)}
+
+Return this exact format:
+{{
+  "plans": [
+    {{
+      "control_id": "A.5.1",
+      "description": "Develop and approve a formal Information Security Policy...",
+      "effort_hours": 16,
+      "owner": "CISO / Security Manager"
+    }}
+  ],
+  "policy_templates": [
+    {{
+      "control_id": "A.5.1",
+      "title": "Information Security Policy",
+      "clause": "Full policy text as a template..."
+    }}
+  ]
+}}
+
+If a control does not need a policy template, omit it from policy_templates.
+Effort hours should be realistic for an SME (small to medium enterprise).
+Owner should be a role title, not a person's name.
+Description must be actionable and specific to the control."""
+
+    try:
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(prompt)
+        raw_text = response.text.strip()
+
+        # Extract JSON object
+        import re
+        json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+        if json_match:
+            raw_text = json_match.group()
+
+        parsed = json.loads(raw_text)
+
+        # Validate and filter plans
+        plans_data = parsed.get("plans", [])
+        if not isinstance(plans_data, list):
+            plans_data = []
+
+        validated_plans = []
+        for item in plans_data:
+            cid = item.get("control_id", "")
+            if cid in control_info_map and cid in all_gap_ids:
+                domain = control_info_map[cid]["domain"]
+                description = item.get("description", "").strip()
+                effort_hours = int(item.get("effort_hours", 0))
+                if effort_hours < 1:
+                    effort_hours = 8
+                if effort_hours > 200:
+                    effort_hours = 200
+                owner = item.get("owner", "").strip()
+                if not owner:
+                    owner = "Security Team"
+                validated_plans.append({
+                    "control_id": cid,
+                    "domain": domain,
+                    "description": description,
+                    "effort_hours": effort_hours,
+                    "owner": owner,
+                })
+
+        # Validate and filter policy templates
+        templates_data = parsed.get("policy_templates", [])
+        if not isinstance(templates_data, list):
+            templates_data = []
+
+        validated_templates = []
+        for item in templates_data:
+            cid = item.get("control_id", "")
+            if cid in control_info_map and cid in all_gap_ids:
+                title = item.get("title", "").strip()
+                clause = item.get("clause", "").strip()
+                if title and clause and len(clause) > 50:
+                    validated_templates.append({
+                        "control_id": cid,
+                        "title": title,
+                        "clause": clause,
+                    })
+
+        # Cache plans in DB
+        delete_remediation_plans(session_id)
+        for plan in validated_plans:
+            save_remediation_plan(
+                session_id,
+                plan["control_id"],
+                plan["domain"],
+                plan["description"],
+                plan["effort_hours"],
+                plan["owner"],
+            )
+
+        # Cache templates in DB
+        delete_policy_templates(session_id)
+        for tmpl in validated_templates:
+            save_policy_template(
+                session_id,
+                tmpl["control_id"],
+                tmpl["title"],
+                tmpl["clause"],
+            )
+
+        return jsonify({
+            "plans": validated_plans,
+            "policy_templates": validated_templates,
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate remediation plan: {str(e)}"}), 500
 
 
 # ============================================================

@@ -24,6 +24,8 @@ def generate_gap_report(
     control_map: dict,
     output_path: str,
     priority_matrix: dict | None = None,
+    remediation_plans: list[dict] | None = None,
+    policy_templates: list[dict] | None = None,
 ) -> str:
     """
     Generates PDF at output_path.
@@ -32,7 +34,9 @@ def generate_gap_report(
       2. Executive Summary: Table of 7 domains + scores
       3. Gap Analysis: Per-domain, list missed controls + descriptions + next steps
       4. Remediation Priority Matrix (if data available): 2x2 grid of gap priorities
-      5. Full Response Log: Q&A transcript
+      5. Remediation Roadmap (if data available): Detailed plan with effort/owner
+      6. Full Response Log: Q&A transcript
+      7. Policy Templates (if available): Copyable policy clauses
     Returns output_path.
     """
     doc = SimpleDocTemplate(
@@ -272,8 +276,89 @@ def generate_gap_report(
         ))
         story.append(PageBreak())
 
-    # ===== SECTION 5: FULL RESPONSE LOG =====
+    # ===== SECTION 5: REMEDIATION ROADMAP =====
+    if remediation_plans:
+        story.append(Paragraph("Remediation Roadmap", heading_style))
+        story.append(Paragraph(
+            "The following table provides a detailed remediation plan for each identified "
+            "gap control, including a description of the work required, estimated effort in "
+            "hours, and the role responsible for implementation.",
+            body_style
+        ))
+        story.append(Spacer(1, 4 * mm))
+
+        # Summary stats
+        total_hours = sum(p.get("effort_hours", 0) for p in remediation_plans)
+        unique_domains = len(set(p.get("domain", "") for p in remediation_plans))
+        story.append(Paragraph(
+            f"<b>Total controls:</b> {len(remediation_plans)} | "
+            f"<b>Total effort:</b> {total_hours} hours | "
+            f"<b>Domains impacted:</b> {unique_domains}",
+            body_style
+        ))
+        story.append(Spacer(1, 3 * mm))
+
+        # Build table
+        table_header = ["Control", "Domain", "Description", "Hours", "Owner"]
+        table_data = [table_header]
+
+        for plan in remediation_plans:
+            cid = plan.get("control_id", "")
+            domain = plan.get("domain", "")
+            desc = plan.get("description", "")
+            hours = plan.get("effort_hours", 0)
+            owner = plan.get("owner", "")
+
+            # Truncate description for table readability
+            if len(desc) > 100:
+                desc = desc[:97] + "..."
+
+            table_data.append([cid, domain, desc, str(hours), owner])
+
+        col_widths = [28 * mm, 38 * mm, 72 * mm, 16 * mm, 26 * mm]
+        table = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+        # Color code effort hours
+        table_style_cmds = [
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a237e")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("FONTSIZE", (0, 1), (0, -1), 9),
+            ("ALIGN", (3, 0), (3, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f5f5f5")]),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ]
+
+        # Color-code the hours column
+        for i, plan in enumerate(remediation_plans, 1):
+            hours = plan.get("effort_hours", 0)
+            if hours <= 7:
+                bg = colors.HexColor("#dcfce7")
+            elif hours <= 30:
+                bg = colors.HexColor("#fef9c3")
+            else:
+                bg = colors.HexColor("#fee2e2")
+            table_style_cmds.append(("BACKGROUND", (3, i), (3, i), bg))
+
+        table.setStyle(TableStyle(table_style_cmds))
+
+        story.append(table)
+        story.append(Spacer(1, 4 * mm))
+        story.append(Paragraph(
+            "<i>Effort color coding: green = ≤7 hours, yellow = 8-30 hours, red = >30 hours</i>",
+            small_style
+        ))
+        story.append(PageBreak())
+
+    # ===== SECTION 6: FULL RESPONSE LOG =====
     story.append(Paragraph("Full Q&A Transcript", heading_style))
+    story.append(Spacer(1, 2 * mm))
     story.append(Paragraph(
         "The complete list of all 30 questions and the responses provided during the assessment.",
         body_style
@@ -308,6 +393,55 @@ def generate_gap_report(
                 "<i>Matched Controls:</i> None",
                 ParagraphStyle("MText", parent=body_style, fontSize=9, leftIndent=15, textColor=colors.HexColor("#888888"), spaceAfter=6)
             ))
+
+    # ===== SECTION 7: POLICY TEMPLATES =====
+    if policy_templates:
+        story.append(PageBreak())
+        story.append(Paragraph("Policy Templates", heading_style))
+        story.append(Paragraph(
+            "The following policy templates are provided as starting points for drafting "
+            "formal documentation required to address identified gaps. Each template should "
+            "be customized to your organization's specific context.",
+            body_style
+        ))
+        story.append(Spacer(1, 4 * mm))
+
+        for tmpl in policy_templates:
+            cid = tmpl.get("control_id", "")
+            title = tmpl.get("title", "")
+            clause = tmpl.get("clause", "")
+
+            story.append(Paragraph(
+                f"<b>{title}</b>  <font size='9' color='#666666'>[{cid}]</font>",
+                ParagraphStyle("PolicyTitle", parent=body_style, fontSize=13, spaceBefore=10, spaceAfter=4)
+            ))
+
+            # Render clause in a styled box
+            clause_style = ParagraphStyle(
+                "ClauseText", parent=body_style,
+                fontSize=9, leading=13,
+                backColor=colors.HexColor("#f8fafc"),
+                borderColor=colors.HexColor("#1a237e"),
+                borderWidth=0,
+                borderPadding=10,
+                leftIndent=6,
+                spaceBefore=2,
+                spaceAfter=10,
+            )
+            # Add a colored left border effect using a table
+            clause_data = [[
+                Paragraph(clause, clause_style)
+            ]]
+            clause_table = Table(clause_data, colWidths=[170 * mm])
+            clause_table.setStyle(TableStyle([
+                ("LEFTPADDING", (0, 0), (0, 0), 12),
+                ("RIGHTPADDING", (0, 0), (0, 0), 6),
+                ("TOPPADDING", (0, 0), (0, 0), 8),
+                ("BOTTOMPADDING", (0, 0), (0, 0), 8),
+                ("BACKGROUND", (0, 0), (0, 0), colors.HexColor("#f8fafc")),
+                ("LINEBEFORE", (0, 0), (0, 0), 4, colors.HexColor("#1a237e")),
+            ]))
+            story.append(clause_table)
 
     # Build PDF
     doc.build(story)

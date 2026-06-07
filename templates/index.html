@@ -4,10 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISO 27001 Readiness Self-Assessment</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=6">
 </head>
 <body>
+    <a id="dashboard-pill" class="dashboard-pill" href="#" target="_blank" style="display: none;" aria-label="Open live dashboard">
+        <span>📊 Live Dashboard &rarr;</span>
+        <span class="sub-text">Opens in new tab</span>
+    </a>
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
@@ -190,6 +199,74 @@
                         </div>
                     </div>
 
+                    <!-- Remediation Plan -->
+                    <div id="remediation-section" class="remediation-section" style="display:none;">
+                        <h3 class="section-title">Remediation Plan</h3>
+
+                        <button id="generate-remediation-btn" class="btn btn-secondary remediation-btn">
+                            &#x1F9FE; Generate Remediation Plan
+                        </button>
+
+                        <!-- Loading -->
+                        <div id="remediation-loading" class="remediation-loading" style="display:none;">
+                            <div class="spinner"></div>
+                            <span id="remediation-loading-message">Consulting AI for remediation strategies...</span>
+                        </div>
+
+                        <!-- Error -->
+                        <div id="remediation-error" class="priority-error" style="display:none;"></div>
+
+                        <!-- Summary Bar -->
+                        <div id="remediation-summary" class="remediation-summary" style="display:none;">
+                            <div class="summary-stat">
+                                <span class="summary-number" id="summary-controls">0</span>
+                                <span class="summary-label">Controls</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="summary-number" id="summary-hours">0</span>
+                                <span class="summary-label">Total Hours</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="summary-number" id="summary-domains">0</span>
+                                <span class="summary-label">Domains</span>
+                            </div>
+                        </div>
+
+                        <!-- Sort Buttons -->
+                        <div id="remediation-sort-bar" class="remediation-sort-bar" style="display:none;">
+                            <span class="sort-label">Sort by:</span>
+                            <button class="btn btn-sm sort-btn active" data-sort="domain">Domain</button>
+                            <button class="btn btn-sm sort-btn" data-sort="effort">Effort</button>
+                            <button class="btn btn-sm sort-btn" data-sort="owner">Owner</button>
+                            <button id="expand-all-btn" class="btn btn-sm sort-btn">&#x25B2; Expand All</button>
+                            <button id="collapse-all-btn" class="btn btn-sm sort-btn">&#x25BC; Collapse All</button>
+                        </div>
+
+                        <!-- Accordion -->
+                        <div id="remediation-accordion" class="remediation-accordion" style="display:none;">
+                            <!-- Rendered by JS -->
+                        </div>
+
+                        <!-- Export CSV -->
+                        <div id="remediation-export-bar" class="remediation-export-bar" style="display:none;">
+                            <button id="export-csv-btn" class="btn btn-sm btn-secondary">
+                                &#x1F4C4; Export CSV
+                            </button>
+                        </div>
+
+                        <!-- Policy Templates -->
+                        <div id="policy-templates-section" class="policy-templates-section" style="display:none;">
+                            <h4 class="section-subtitle">&#x1F4C4; Policy Templates</h4>
+                            <p class="policy-templates-intro">
+                                Below are draft policy clauses generated for controls that typically require written documentation.
+                                Click "Copy template" to copy the clause to your clipboard.
+                            </p>
+                            <div id="policy-templates-list">
+                                <!-- Rendered by JS -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Actions -->
                     <div class="results-actions">
                         <button id="download-pdf-btn" class="btn btn-primary">
@@ -209,6 +286,6 @@
         </footer>
     </div>
 
-    <script src="/static/chat.js"></script>
+    <script src="/static/chat.js?v=4"></script>
 </body>
 </html>

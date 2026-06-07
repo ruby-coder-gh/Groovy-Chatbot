@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# Flask / local SQLite
+*.db
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Node (if ever added)
+node_modules/
+
+# Reports / generated artifacts
+static/reports/
+
+# Coverage / testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Mac scratch
+*.swp
+
+# Vercel
+.vercel
+

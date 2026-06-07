@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Compliance Intelligence Dashboard | ISO 27001</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=6">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ── Dashboard-Specific Overrides ───────────────────── */
+        :root {
+            --teal: #06b6d4;
+            --teal-dark: #0891b2;
+            --teal-glow: rgba(6, 182, 212, 0.2);
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .db-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            padding: 20px 32px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+
+        .db-header-left h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .db-header-left h1 span.icon {
+            font-size: 26px;
+        }
+
+        .db-header-left p {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .db-header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Live Badge */
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--success-bg);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            transition: all var(--transition);
+        }
+
+        .live-badge.complete {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .live-badge.complete .live-dot {
+            background: var(--info);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(1.2); }
+        }
+
+        /* Progress Card */
+        .progress-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
+            padding: 20px 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .progress-track {
+            height: 10px;
+            background: var(--bg-card);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--success));
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 30px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25));
+            border-radius: 5px;
+            animation: progressShine 2s ease-in-out infinite;
+        }
+
+        @keyframes progressShine {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
+        /* 3-Column Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr 0.9fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Cards */
+        .db-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .db-card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-container {
+            position: relative;
+            margin: auto;
+            width: 100%;
+            height: 300px;
+        }
+
+        /* Score Cards */
+        .score-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .score-cards-grid::-webkit-scrollbar {
+            width: 3px;
+        }
+        .score-cards-grid::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .score-cards-grid::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .score-card-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            border-left: 4px solid var(--border);
+            transition: all var(--transition);
+        }
+
+        .score-card-item:hover {
+            background: var(--bg-card-hover);
+            transform: translateX(4px);
+        }
+
+        .score-card-item.status-red {
+            border-left-color: var(--danger);
+            background: var(--danger-bg);
+        }
+        .score-card-item.status-yellow {
+            border-left-color: var(--warning);
+            background: var(--warning-bg);
+        }
+        .score-card-item.status-green {
+            border-left-color: var(--success);
+            background: var(--success-bg);
+        }
+
+        .score-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score-card-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .score-card-value-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-card-value {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .score-card-status-icon {
+            font-size: 14px;
+        }
+
+        .score-card-bar-container {
+            height: 5px;
+            background: var(--bg-card);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .score-card-bar {
+            height: 100%;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-red .score-card-bar { background: var(--danger); }
+        .status-yellow .score-card-bar { background: var(--warning); }
+        .status-green .score-card-bar { background: var(--success); }
+
+        /* Heatmap */
+        .heatmap-container {
+            display: flex;
+            flex-direction: column;
+            height: 300px;
+            gap: 8px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .heatmap-row {
+            display: flex;
+            flex: 1;
+            gap: 8px;
+        }
+
+        .heatmap-block {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            cursor: default;
+            transition: all var(--transition-slow);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            flex-basis: 0;
+            overflow: hidden;
+        }
+
+        .heatmap-block:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .heatmap-block-name {
+            font-weight: 700;
+            font-size: 12px;
+            line-height: 1.2;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .heatmap-block-score {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 4px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .heatmap-block-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .heatmap-block.risk-high {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+        .heatmap-block.risk-medium {
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fcd34d;
+        }
+        .heatmap-block.risk-low {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+        }
+
+        /* Live Feed */
+        .live-feed-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+
+        .live-feed-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 16px;
+            min-height: 80px;
+        }
+
+        .feed-entry {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .feed-q {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .feed-a {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-style: italic;
+            padding-left: 10px;
+            border-left: 2px solid var(--accent);
+        }
+
+        .feed-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .feed-matched {
+            color: var(--accent-light);
+            background: var(--accent-glow);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* Executive Summary */
+        .summary-card {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            animation: fadeInCard 0.8s ease forwards;
+        }
+
+        @keyframes fadeInCard {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .summary-card-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--accent-light);
+            margin: 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-text-box {
+            font-size: 14px;
+            line-height: 1.9;
+            color: var(--text-secondary);
+            min-height: 60px;
+            position: relative;
+        }
+
+        .summary-text-box p {
+            margin: 0 0 14px 0;
+        }
+        .summary-text-box p:last-child { margin-bottom: 0; }
+
+        .blinking-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background-color: var(--accent);
+            margin-left: 4px;
+            vertical-align: middle;
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Actions */
+        .db-actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn-db {
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            border: none;
+            font-family: var(--font);
+            text-decoration: none;
+        }
+
+        .btn-db-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: var(--text-inverse);
+            box-shadow: var(--shadow-accent);
+        }
+
+        .btn-db-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        .btn-db-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-db-secondary {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-db-secondary:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .db-footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 12px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 12px;
+            }
+            .db-header {
+                flex-direction: column;
+                gap: 12px;
+                padding: 16px 20px;
+                text-align: center;
+            }
+            .db-header-left h1 {
+                font-size: 18px;
+            }
+            .heatmap-block-name {
+                font-size: 10px;
+            }
+            .heatmap-block-score {
+                font-size: 18px;
+            }
+            .summary-card {
+                padding: 20px;
+            }
+            .feed-entry {
+                padding: 12px 14px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- HEADER -->
+        <header class="db-header">
+            <div class="db-header-left">
+                <h1><span class="icon">🛡️</span> Live Compliance Intelligence Dashboard</h1>
+                <p>Real-time ISO 27001 Readiness Self-Assessment Monitoring</p>
+            </div>
+            <div class="db-header-right">
+                <div class="live-badge" id="live-badge">
+                    <div class="live-dot"></div>
+                    <span id="badge-text">LIVE</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- PROGRESS -->
+        <section class="progress-card">
+            <div class="progress-meta">
+                <span id="company-name-display">Loading assessment details...</span>
+                <span id="progress-numerical">0 / 30 Questions</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-bar-fill"></div>
+            </div>
+        </section>
+
+        <!-- 3-COLUMN GRID -->
+        <main class="dashboard-grid">
+            <!-- Column 1: Radar Chart -->
+            <div class="db-card">
+                <h3 class="db-card-title">📊 Annex A Domain Coverage</h3>
+                <div class="chart-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Column 2: Score Cards -->
+            <div class="db-card">
+                <h3 class="db-card-title">🎯 Domain Readiness Scores</h3>
+                <div class="score-cards-grid" id="score-cards-container"></div>
+            </div>
+
+            <!-- Column 3: Risk Heatmap -->
+            <div class="db-card">
+                <h3 class="db-card-title">🔥 Risk Heatmap</h3>
+                <div class="heatmap-container" id="heatmap-container">
+                    <div class="heatmap-row" id="heatmap-row-1"></div>
+                    <div class="heatmap-row" id="heatmap-row-2"></div>
+                    <div class="heatmap-row" id="heatmap-row-3"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- LIVE FEED -->
+        <section class="live-feed-card">
+            <h3 class="db-card-title">📝 Live Answer Feed</h3>
+            <div class="live-feed-list" id="live-feed-list">
+                <div class="cell-empty" style="text-align:center; padding:24px 0;">
+                    Waiting for answers... Start the assessment in the chat!
+                </div>
+            </div>
+        </section>
+
+        <!-- AI EXECUTIVE SUMMARY -->
+        <section class="summary-card" id="summary-card">
+            <h3 class="summary-card-title">🤖 AI Executive Summary — Generated by Gemini</h3>
+            <div class="summary-text-box" id="summary-text-box"></div>
+        </section>
+
+        <!-- ACTIONS -->
+        <section class="db-actions">
+            <button class="btn-db btn-db-primary" id="btn-download-pdf" disabled>
+                📥 Download PDF Report
+            </button>
+            <a class="btn-db btn-db-secondary" href="/" target="_blank">
+                💬 Open Chat
+            </a>
+        </section>
+
+        <footer class="db-footer">
+            ISO 27001 Live Compliance Dashboard &bull; Powered by Google Gemini AI &bull; CHARUSAT 2026
+        </footer>
+    </div>
+
+    <script>
+        const SESSION_ID = "{{ session_id }}";
+        const processedAnswerIds = new Set();
+        let lastScores = {};
+
+        const domainsMeta = {
+            "Organizational Controls": { short: "Organizational", weight: 7 },
+            "People Controls": { short: "People", weight: 4 },
+            "Physical Controls": { short: "Physical", weight: 4 },
+            "Technological Controls": { short: "Technological", weight: 8 },
+            "Asset Management": { short: "Asset Mgmt", weight: 3 },
+            "Cryptography": { short: "Cryptography", weight: 2 },
+            "Incident Management": { short: "Incident Mgmt", weight: 2 }
+        };
+
+        const domainOrder = [
+            "Organizational Controls", "People Controls", "Physical Controls",
+            "Technological Controls", "Asset Management", "Cryptography", "Incident Management"
+        ];
+
+        // Radar Chart
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        const radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: domainOrder.map(d => domainsMeta[d].short),
+                datasets: [{
+                    label: 'Domain Coverage',
+                    data: [0, 0, 0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+                    borderColor: '#06b6d4',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#06b6d4',
+                    pointBorderColor: '#0a0e1a',
+                    pointHoverBackgroundColor: '#22d3ee',
+                    pointHoverBorderColor: '#06b6d4',
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255,255,255,0.06)' },
+                        grid: { color: 'rgba(255,255,255,0.06)' },
+                        pointLabels: {
+                            font: { family: 'Inter', size: 10, weight: '600' },
+                            color: '#94a3b8'
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 100,
+                        ticks: {
+                            stepSize: 20,
+                            backdropColor: 'transparent',
+                            color: '#64748b',
+                            font: { size: 9 }
+                        }
+                    }
+                }
+            }
+        });
+
+        function getRelativeTimeString(date) {
+            const timeMs = typeof date === 'number' ? date : new Date(date).getTime();
+            const deltaSec = Math.round((Date.now() - timeMs) / 1000);
+            if (deltaSec < 5) return 'just now';
+            if (deltaSec < 60) return deltaSec + 's ago';
+            return Math.round(deltaSec / 60) + 'm ago';
+        }
+
+        function animateNumber(element, start, end, duration) {
+            if (!element) return;
+            const startTime = performance.now();
+            function update(now) {
+                const progress = Math.min((now - startTime) / duration, 1);
+                const eased = progress * (2 - progress);
+                element.textContent = Math.round(start + (end - start) * eased);
+                if (progress < 1) requestAnimationFrame(update);
+                else element.textContent = end;
+            }
+            requestAnimationFrame(update);
+        }
+
+        function updateScoreCards(scores) {
+            const container = document.getElementById('score-cards-container');
+            if (container.children.length === 0) {
+                domainOrder.forEach(domain => {
+                    const meta = domainsMeta[domain];
+                    const card = document.createElement('div');
+                    card.className = 'score-card-item status-red';
+                    card.id = 'score-card-' + domain.replace(/\s+/g, '-');
+                    card.innerHTML =
+                        '<div class="score-card-header">' +
+                            '<span class="score-card-name">' + meta.short + '</span>' +
+                            '<div class="score-card-value-group">' +
+                                '<span class="score-card-value" id="score-val-' + domain.replace(/\s+/g, '-') + '">0</span>' +
+                                '<span class="score-card-status-icon" id="score-icon-' + domain.replace(/\s+/g, '-') + '">🔴</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="score-card-bar-container">' +
+                            '<div class="score-card-bar" id="score-bar-' + domain.replace(/\s+/g, '-') + '"></div>' +
+                        '</div>';
+                    container.appendChild(card);
+                });
+            }
+
+            domainOrder.forEach(domain => {
+                const valObj = scores[domain] || { score: 0 };
+                const score = valObj.score || 0;
+                const card = document.getElementById('score-card-' + domain.replace(/\s+/g, '-'));
+                const valEl = document.getElementById('score-val-' + domain.replace(/\s+/g, '-'));
+                const iconEl = document.getElementById('score-icon-' + domain.replace(/\s+/g, '-'));
+                const barEl = document.getElementById('score-bar-' + domain.replace(/\s+/g, '-'));
+                const oldScore = parseInt(valEl.textContent) || 0;
+                if (oldScore !== score) animateNumber(valEl, oldScore, score, 600);
+                barEl.style.width = score + '%';
+                card.className = 'score-card-item';
+                if (score >= 70) { card.classList.add('status-green'); iconEl.textContent = '🟢'; }
+                else if (score >= 40) { card.classList.add('status-yellow'); iconEl.textContent = '🟡'; }
+                else { card.classList.add('status-red'); iconEl.textContent = '🔴'; }
+            });
+        }
+
+        function updateHeatmap(scores) {
+            const rowLayouts = [
+                ["Technological Controls", "Organizational Controls"],
+                ["People Controls", "Physical Controls", "Asset Management"],
+                ["Cryptography", "Incident Management"]
+            ];
+            rowLayouts.forEach((rowDomains, rowIndex) => {
+                const rowEl = document.getElementById('heatmap-row-' + (rowIndex + 1));
+                rowEl.innerHTML = '';
+                rowDomains.forEach(domain => {
+                    const scoreObj = scores[domain] || { score: 0 };
+                    const score = scoreObj.score || 0;
+                    const meta = domainsMeta[domain];
+                    const riskSize = Math.max((100 - score) * meta.weight, 0.5);
+                    const block = document.createElement('div');
+                    block.className = 'heatmap-block';
+                    let riskClass = 'risk-low', riskLabel = 'COMPLIANT';
+                    if (score < 40) { riskClass = 'risk-high'; riskLabel = 'HIGH RISK'; }
+                    else if (score < 70) { riskClass = 'risk-medium'; riskLabel = 'MEDIUM'; }
+                    block.classList.add(riskClass);
+                    block.style.flexGrow = riskSize;
+                    block.innerHTML =
+                        '<span class="heatmap-block-name">' + meta.short + '</span>' +
+                        '<span class="heatmap-block-score">' + score + '</span>' +
+                        '<span class="heatmap-block-label">' + riskLabel + '</span>';
+                    rowEl.appendChild(block);
+                });
+            });
+        }
+
+        function updateRadarChart(scores) {
+            radarChart.data.datasets[0].data = domainOrder.map(d => (scores[d] || { score: 0 }).score || 0);
+            radarChart.update('active');
+        }
+
+        function updateProgressBar(progress, total) {
+            const pct = Math.round((progress / total) * 100);
+            document.getElementById('progress-bar-fill').style.width = pct + '%';
+            document.getElementById('progress-numerical').textContent = progress + ' / ' + total + ' Questions';
+        }
+
+        function addToFeed(latestAnswer) {
+            const answerKey = latestAnswer.question_id + '-' + latestAnswer.user_answer;
+            if (processedAnswerIds.has(answerKey)) return;
+            processedAnswerIds.add(answerKey);
+
+            const container = document.getElementById('live-feed-list');
+            const emptyCell = container.querySelector('.cell-empty');
+            if (emptyCell) container.innerHTML = '';
+
+            const entry = document.createElement('div');
+            entry.className = 'feed-entry';
+            const matchedText = latestAnswer.matched_controls && latestAnswer.matched_controls.length > 0
+                ? latestAnswer.matched_controls.join(', ') : 'None';
+            entry.innerHTML =
+                '<div class="feed-q">Q: ' + latestAnswer.question_text + '</div>' +
+                '<div class="feed-a">" ' + latestAnswer.user_answer + '"</div>' +
+                '<div class="feed-footer">' +
+                    '<span>Matched: <span class="feed-matched">' + matchedText + '</span></span>' +
+                    '<span class="feed-time" data-timestamp="' + Date.now() + '">' + getRelativeTimeString(Date.now()) + '</span>' +
+                '</div>';
+            container.insertBefore(entry, container.firstChild);
+            while (container.children.length > 5) container.removeChild(container.lastChild);
+        }
+
+        setInterval(() => {
+            document.querySelectorAll('.feed-time').forEach(el => {
+                const ts = parseInt(el.getAttribute('data-timestamp'));
+                if (ts) el.textContent = getRelativeTimeString(ts);
+            });
+        }, 15000);
+
+        function showExecutiveSummary() {
+            const summaryCard = document.getElementById('summary-card');
+            const textBox = document.getElementById('summary-text-box');
+            summaryCard.style.display = 'flex';
+            textBox.innerHTML = '<span class="blinking-cursor">▊</span>';
+
+            const summaryEs = new EventSource('/api/executive-summary/' + SESSION_ID);
+            let textBuffer = '', printedLength = 0, finishedStreaming = false;
+
+            summaryEs.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.chunk) textBuffer += data.chunk;
+                if (data.done) { finishedStreaming = true; summaryEs.close(); }
+            };
+            summaryEs.onerror = () => { finishedStreaming = true; summaryEs.close(); };
+
+            const interval = setInterval(() => {
+                if (printedLength < textBuffer.length) {
+                    printedLength++;
+                    const paragraphs = textBuffer.substring(0, printedLength).split('\n\n');
+                    let htmlContent = '';
+                    paragraphs.forEach(para => {
+                        if (para.trim()) htmlContent += '<p>' + para.replace(/\n/g, ' ') + '</p>';
+                    });
+                    textBox.innerHTML = htmlContent + '<span class="blinking-cursor">▊</span>';
+                } else if (finishedStreaming && printedLength === textBuffer.length) {
+                    clearInterval(interval);
+                    const paragraphs = textBuffer.split('\n\n');
+                    let htmlContent = '';
+                    paragraphs.forEach(para => {
+                        if (para.trim()) htmlContent += '<p>' + para.replace(/\n/g, ' ') + '</p>';
+                    });
+                    textBox.innerHTML = htmlContent;
+                }
+            }, 30);
+        }
+
+        // Initial load
+        fetch('/api/scores/' + SESSION_ID)
+            .then(r => r.json())
+            .then(data => {
+                if (data.company_name) {
+                    document.getElementById('company-name-display').textContent = 'Company: ' + data.company_name;
+                }
+            }).catch(() => {});
+
+        // SSE
+        const es = new EventSource('/api/stream/' + SESSION_ID);
+        es.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            updateRadarChart(data.scores);
+            updateScoreCards(data.scores);
+            updateHeatmap(data.scores);
+            updateProgressBar(data.progress, data.total);
+            if (data.latest_answer) addToFeed(data.latest_answer);
+            if (data.status === 'done') {
+                es.close();
+                const badge = document.getElementById('live-badge');
+                badge.className = 'live-badge complete';
+                document.getElementById('badge-text').textContent = 'COMPLETE';
+                const pdfBtn = document.getElementById('btn-download-pdf');
+                pdfBtn.removeAttribute('disabled');
+                fetch('/api/report/' + SESSION_ID)
+                    .then(r => r.json())
+                    .then(reportData => {
+                        pdfBtn.onclick = () => window.open(reportData.report_url, '_blank');
+                    }).catch(() => {
+                        pdfBtn.onclick = () => window.open('/download/report_' + SESSION_ID + '.pdf', '_blank');
+                    });
+                showExecutiveSummary();
+            }
+        };
+        es.onerror = () => {
+            es.close();
+            const badge = document.getElementById('live-badge');
+            if (badge && !badge.classList.contains('complete')) {
+                document.getElementById('badge-text').textContent = 'DISCONNECTED';
+                badge.style.background = 'rgba(245, 158, 11, 0.1)';
+                badge.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                badge.style.color = '#fcd34d';
+                badge.querySelector('.live-dot').style.background = '#f59e0b';
+            }
+        };
+    </script>
+</body>
+</html>
