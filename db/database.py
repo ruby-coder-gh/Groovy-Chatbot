@@ -25,9 +25,19 @@ if DATABASE_URL:
     import psycopg2.extras
     from psycopg2 import sql as psql
 
+    # Fix: Serverless (Vercel) needs the Supabase pooler on port 6543 + IPv4
+    _db_url = DATABASE_URL
+    # Auto-switch to pooler port 6543 for serverless environments
+    if ":5432/" in _db_url and os.environ.get("VERCEL", "").lower() == "true":
+        _db_url = _db_url.replace(":5432/", ":6543/")
+    # Append connect_timeout if not present
+    if "connect_timeout" not in _db_url:
+        separator = "&" if "?" in _db_url else "?"
+        _db_url += f"{separator}connect_timeout=10"
+
     def get_connection():
         """Return a PostgreSQL connection (dict-like rows)."""
-        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+        conn = psycopg2.connect(_db_url, sslmode="require")
         conn.autocommit = False
         return conn
 
@@ -120,15 +130,39 @@ if DATABASE_URL:
 
     # ── Public API ───────────────────────────
 
+    # ── Fallback flag ─────────────────────────
+    _pg_healthy = True
+
     def init_db():
-        """Create tables if they don't exist."""
-        conn = get_connection()
+        """Create tables if they don't exist. Graceful on connection failure."""
+        global _pg_healthy
+        conn = None
+        try:
+            conn = get_connection()
+        except Exception as e:
+            print(f"⚠️ PostgreSQL connection failed: {e}")
+            _pg_healthy = False
+            return
+
         try:
             with conn.cursor() as cur:
                 cur.execute(SCHEMA_SQL)
             conn.commit()
+            _pg_healthy = True
+        except Exception as e:
+            print(f"⚠️ PostgreSQL init failed: {e}")
+            _pg_healthy = False
         finally:
-            conn.close()
+            if conn:
+                conn.close()
+
+    def _require_pg():
+        """Check that PostgreSQL is healthy before every operation."""
+        if not _pg_healthy:
+            raise RuntimeError(
+                "Database unavailable. Please check your DATABASE_URL "
+                "environment variable and ensure Supabase is running."
+            )
 
     def create_session(session_id, company_name):
         conn = get_connection()
